@@ -12,23 +12,28 @@ const models = {
     id: "gpt-oss-120b",
     object: "model",
     created: Date.now(),
-    owned_by: "gpt-oss"
+    owned_by: "gpt-oss",
   },
   "gpt-oss-20b": {
     id: "gpt-oss-20b",
     object: "model",
     created: Date.now(),
-    owned_by: "gpt-oss"
-  }
+    owned_by: "gpt-oss",
+  },
 };
 
 const defaultModel = "gpt-oss-120b";
+
+// Health check endpoint (Required for Deno Deploy Warm Up)
+router.get("/", (ctx) => {
+  ctx.response.body = { status: "ok", message: "GPT-OSS API is running" };
+});
 
 // Models endpoint
 router.get("/v1/models", (ctx) => {
   ctx.response.body = {
     object: "list",
-    data: Object.values(models)
+    data: Object.values(models),
   };
 });
 
@@ -46,8 +51,8 @@ router.post("/v1/chat/completions", async (ctx) => {
       ctx.response.body = {
         error: {
           message: `Model '${model}' not found`,
-          type: "invalid_request_error"
-        }
+          type: "invalid_request_error",
+        },
       };
       return;
     }
@@ -58,8 +63,8 @@ router.post("/v1/chat/completions", async (ctx) => {
       ctx.response.body = {
         error: {
           message: "Messages must be a non-empty array",
-          type: "invalid_request_error"
-        }
+          type: "invalid_request_error",
+        },
       };
       return;
     }
@@ -68,7 +73,7 @@ router.post("/v1/chat/completions", async (ctx) => {
     const response = await gptoss.chatCompletion({
       model,
       messages,
-      stream
+      stream,
     });
 
     if (stream) {
@@ -86,13 +91,15 @@ router.post("/v1/chat/completions", async (ctx) => {
               object: "chat.completion.chunk",
               created: Math.floor(Date.now() / 1000),
               model,
-              choices: [{
-                index: 0,
-                delta: {
-                  content: chunk
+              choices: [
+                {
+                  index: 0,
+                  delta: {
+                    content: chunk,
+                  },
+                  finish_reason: null,
                 },
-                finish_reason: null
-              }]
+              ],
             };
             controller.enqueue(`data: ${JSON.stringify(data)}\n\n`);
           }
@@ -102,16 +109,18 @@ router.post("/v1/chat/completions", async (ctx) => {
             object: "chat.completion.chunk",
             created: Math.floor(Date.now() / 1000),
             model,
-            choices: [{
-              index: 0,
-              delta: {},
-              finish_reason: "stop"
-            }]
+            choices: [
+              {
+                index: 0,
+                delta: {},
+                finish_reason: "stop",
+              },
+            ],
           };
           controller.enqueue(`data: ${JSON.stringify(doneData)}\n\n`);
           controller.enqueue("data: [DONE]\n\n");
           controller.close();
-        }
+        },
       });
 
       ctx.response.body = readable;
@@ -127,19 +136,21 @@ router.post("/v1/chat/completions", async (ctx) => {
         object: "chat.completion",
         created: Math.floor(Date.now() / 1000),
         model,
-        choices: [{
-          index: 0,
-          message: {
-            role: "assistant",
-            content: fullResponse
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: fullResponse,
+            },
+            finish_reason: "stop",
           },
-          finish_reason: "stop"
-        }],
+        ],
         usage: {
           prompt_tokens: 0, // You may want to calculate these
           completion_tokens: 0,
-          total_tokens: 0
-        }
+          total_tokens: 0,
+        },
       };
     }
   } catch (error) {
@@ -148,8 +159,8 @@ router.post("/v1/chat/completions", async (ctx) => {
     ctx.response.body = {
       error: {
         message: "Internal server error",
-        type: "server_error"
-      }
+        type: "server_error",
+      },
     };
   }
 });
@@ -158,6 +169,6 @@ router.post("/v1/chat/completions", async (ctx) => {
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-// Start the server
-console.log("Server running on http://localhost:8000");
-await app.listen({ port: 8000 });
+// Start the server (Do not specify port in Deno Deploy)
+console.log("Server running");
+await app.listen(); // Let Deno Deploy auto-assign port
