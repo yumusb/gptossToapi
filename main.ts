@@ -142,7 +142,7 @@ router.post("/v1/chat/completions", async (ctx) => {
           finish_reason: "stop"
         }],
         usage: {
-          prompt_tokens: 0, // You may want to calculate these
+          prompt_tokens: 0,
           completion_tokens: 0,
           total_tokens: 0
         }
@@ -169,9 +169,9 @@ router.get("/", (ctx) => {
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-// Get port from environment variable or use default
-const port = parseInt(Deno.env.get("PORT") || "8000");
-
-// Start the server
-console.log(`Server starting on port ${port}...`);
-await app.listen({ port });
+// Export the app for Deno Deploy
+// Use Deno.serve for Deno Deploy compatibility
+Deno.serve({
+  port: parseInt(Deno.env.get("PORT") || "8000"),
+  handler: app.fetch(),
+});
