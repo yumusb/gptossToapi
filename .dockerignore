@@ -1,0 +1,29 @@
+# Git 相关
+.git
+.gitignore
+README.md
+
+# GitHub Actions
+.github
+
+# 开发工具
+.vscode
+.idea
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# Node.js (如果有的话)
+node_modules
+npm-debug.log*
+
+# Deno 缓存 (会在容器内重新生成)
+.deno
